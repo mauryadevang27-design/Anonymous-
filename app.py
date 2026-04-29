@@ -53,14 +53,22 @@ def join_room_route():
         
         return redirect(url_for('room', room_name=room_name))
 
+# Dictionary to map WebSocket session IDs to their room and username
+# Structure: { 'socket_id': {'room': 'room_name', 'username': 'user_name'} }
+connected_users = {}
+
 # SocketIO Events
 @socketio.on('join')
 def handle_join(data):
     room = data['room']
     username = data.get('username', 'Anonymous')
     join_room(room)
-    session['room'] = room
-    session['username'] = username
+    
+    # Reliably track user by their specific SocketIO connection ID
+    connected_users[request.sid] = {
+        'room': room,
+        'username': username
+    }
     
     # In case the server restarted but client reconnected
     if room not in rooms:
@@ -77,9 +85,12 @@ def handle_join(data):
 
 @socketio.on('message')
 def handle_message(data):
-    room = session.get('room')
-    username = session.get('username', 'Anonymous')
-    if room:
+    # Lookup the user's room and name using their connection ID
+    user_info = connected_users.get(request.sid)
+    
+    if user_info:
+        room = user_info['room']
+        username = user_info['username']
         send({
             'type': 'user',
             'message': data['message'],
@@ -88,15 +99,21 @@ def handle_message(data):
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    room = session.get('room')
-    username = session.get('username', 'Anonymous')
-    if room:
+    user_info = connected_users.get(request.sid)
+    
+    if user_info:
+        room = user_info['room']
+        username = user_info['username']
+        
         leave_room(room)
         send({
             'type': 'system',
             'message': f'{username} disconnected.',
             'username': 'System'
         }, room=room)
+        
+        # Remove from connected tracking
+        del connected_users[request.sid]
         
         if room in rooms:
             rooms[room]['users'] -= 1
