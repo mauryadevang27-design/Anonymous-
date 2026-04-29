@@ -526,7 +526,7 @@
             document.getElementById('currentRoom').textContent = roomName;
             document.getElementById('roomInfo').textContent = `[UID: ${username}]`;
 
-            const socket = io();
+            const socket = io({ transports: ['websocket'] });
 
             socket.on('connect', () => {
                 socket.emit('join', { room: roomName, username: username });

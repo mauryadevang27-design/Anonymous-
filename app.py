@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
-import sqlite3
 import hashlib
 import os
 
@@ -8,50 +7,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-key-12345'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Database initialize
-def init_db():
-    conn = sqlite3.connect('chat.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS rooms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            room_name TEXT UNIQUE NOT NULL,
-            password_hash TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+# In-memory storage for temporary rooms
+# Structure: { 'room_name': { 'password_hash': '...', 'users': 0 } }
+rooms = {}
 
-def room_exists(room_name):
-    conn = sqlite3.connect('chat.db')
-    c = conn.cursor()
-    c.execute('SELECT * FROM rooms WHERE room_name = ?', (room_name,))
-    room = c.fetchone()
-    conn.close()
-    return room
-
-def create_room(room_name, password=None):
-    conn = sqlite3.connect('chat.db')
-    c = conn.cursor()
-    if password:
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        c.execute('INSERT INTO rooms (room_name, password_hash) VALUES (?, ?)',
-                  (room_name, password_hash))
-    else:
-        c.execute('INSERT INTO rooms (room_name) VALUES (?)', (room_name,))
-    conn.commit()
-    conn.close()
-
-def get_room_password_hash(room_name):
-    conn = sqlite3.connect('chat.db')
-    c = conn.cursor()
-    c.execute('SELECT password_hash FROM rooms WHERE room_name = ?', (room_name,))
-    result = c.fetchone()
-    conn.close()
-    return result[0] if result else None
-
-# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -73,13 +32,17 @@ def join_room_route():
     if not room_name:
         return "Room name required!", 400
     
-    room = room_exists(room_name)
-    
-    if not room:
-        create_room(room_name, password if password else None)
+    if room_name not in rooms:
+        # Create new temporary room
+        password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
+        rooms[room_name] = {
+            'password_hash': password_hash,
+            'users': 0
+        }
         return redirect(url_for('room', room_name=room_name))
     else:
-        room_password_hash = get_room_password_hash(room_name)
+        # Room exists, check password
+        room_password_hash = rooms[room_name]['password_hash']
         
         if room_password_hash:
             if not password:
@@ -98,6 +61,13 @@ def handle_join(data):
     join_room(room)
     session['room'] = room
     session['username'] = username
+    
+    # In case the server restarted but client reconnected
+    if room not in rooms:
+        rooms[room] = {'password_hash': None, 'users': 0}
+        
+    rooms[room]['users'] += 1
+    
     send({
         'type': 'system',
         'message': f'{username} joined the room!',
@@ -127,7 +97,11 @@ def handle_disconnect():
             'message': f'{username} disconnected.',
             'username': 'System'
         }, room=room)
+        
+        if room in rooms:
+            rooms[room]['users'] -= 1
+            if rooms[room]['users'] <= 0:
+                del rooms[room]
 
 if __name__ == '__main__':
-    init_db()
     socketio.run(app, debug=True, host='0.0.0.0', port=8000)
