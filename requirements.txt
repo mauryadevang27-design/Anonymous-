@@ -1,6 +1,6 @@
 flask
 flask-socketio
-eventlet
 gunicorn
 redis
+gevent
 gevent-websocket
