@@ -535,14 +535,25 @@
             </div>
             <div class="chat-section">
                 <div class="chat-header">
-                    <h3>Connected to: <span id="currentRoom"></span></h3>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <a href="/" style="color: var(--text-muted); text-decoration: none; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" title="Leave Room">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                        </a>
+                        <h3>Connected to: <span id="currentRoom"></span></h3>
+                    </div>
                     <span class="room-badge" id="userCount">Active</span>
                 </div>
                 <div class="messages clearfix" id="messages"></div>
                 <div class="message-input">
+                    <input type="file" id="mediaInput" class="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" onchange="sendMedia()">
+                    <button onclick="document.getElementById('mediaInput').click()" style="padding: 0 16px; background: rgba(31, 41, 55, 0.8); border: 1px solid var(--border-color); color: var(--text-muted);" title="Attach Media">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                    </button>
                     <input type="text" id="messageInput" placeholder="Enter command or message..." autocomplete="off"
                         onkeypress="if(event.key==='Enter') sendMessage()">
-                    <button onclick="sendMessage()">
+                    <button onclick="sendMessage()" title="Send">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -630,7 +641,7 @@
             socket.on('message', (data) => {
                 if (data.type === 'user') {
                     const isOwn = data.username === username;
-                    addMessage(isOwn ? 'user' : 'other', data.message, data.username);
+                    addMessage(isOwn ? 'user' : 'other', data.message, data.username, data.media, data.media_type);
                 } else {
                     addMessage('system', data.message, 'System');
                 }
@@ -644,24 +655,67 @@
                     input.value = '';
                 }
             };
+
+            window.sendMedia = function () {
+                const fileInput = document.getElementById('mediaInput');
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("File is too large! Maximum allowed size is 5MB.");
+                    fileInput.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const base64Data = e.target.result;
+                    socket.emit('message', {
+                        message: file.name,
+                        media: base64Data,
+                        media_type: file.type || 'application/octet-stream'
+                    });
+                };
+                reader.readAsDataURL(file);
+                fileInput.value = '';
+            };
         }
 
-        function addMessage(type, message, username) {
+        function addMessage(type, message, username, media = null, mediaType = null) {
             const messagesDiv = document.getElementById('messages');
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${type}`;
 
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+            let contentHtml = '';
+            
+            if (media) {
+                if (mediaType && mediaType.startsWith('image/')) {
+                    contentHtml = `<img src="${media}" style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-bottom: 5px; cursor: pointer;" onclick="window.open(this.src, '_blank')"><br>`;
+                } else if (mediaType && mediaType.startsWith('video/')) {
+                    contentHtml = `<video controls style="max-width: 100%; max-height: 200px; border-radius: 6px; margin-bottom: 5px;"><source src="${media}" type="${mediaType}"></video><br>`;
+                } else if (mediaType && mediaType.startsWith('audio/')) {
+                    contentHtml = `<audio controls style="max-width: 100%; margin-bottom: 5px;"><source src="${media}" type="${mediaType}"></audio><br>`;
+                }
+                contentHtml += `<a href="${media}" download="${message}" style="color: inherit; text-decoration: underline; font-size: 13px;">📎 ${message}</a>`;
+            } else {
+                const div = document.createElement('div');
+                div.innerText = message;
+                contentHtml = div.innerHTML;
+            }
+
             if (type === 'system') {
-                msgDiv.innerHTML = `<div class="msg-bubble">> ${message}</div>`;
+                const div = document.createElement('div');
+                div.innerText = message;
+                msgDiv.innerHTML = `<div class="msg-bubble">> ${div.innerHTML}</div>`;
             } else {
                 msgDiv.innerHTML = `
                     <div class="message-info">
                         <span class="username">${username}</span>
                         <span class="time">${time}</span>
                     </div>
-                    <div class="msg-bubble">${message}</div>
+                    <div class="msg-bubble">${contentHtml}</div>
                 `;
             }
 

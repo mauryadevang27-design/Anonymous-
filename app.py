@@ -119,11 +119,17 @@ def handle_message(data):
         room = session_data.get("room")
         username = session_data.get("username")
 
-        send({
+        msg_payload = {
             'type': 'user',
-            'message': data['message'],
+            'message': data.get('message', ''),
             'username': username
-        }, room=room)
+        }
+        
+        if 'media' in data:
+            msg_payload['media'] = data['media']
+            msg_payload['media_type'] = data.get('media_type', '')
+
+        send(msg_payload, room=room)
 
 
 @socketio.on('disconnect')
