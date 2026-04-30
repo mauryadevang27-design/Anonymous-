@@ -487,6 +487,13 @@
                 </div>
                 <p>v2.0_SECURE</p>
             </div>
+            
+            {% if error %}
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; margin: 20px 30px 0; border-radius: 8px; text-align: center; font-size: 14px; animation: popIn 0.3s ease;">
+                {{ error }}
+            </div>
+            {% endif %}
+
             <div class="join-section">
                 <h2>Initialize Connection</h2>
                 <form id="joinForm" method="POST" action="/join_room">

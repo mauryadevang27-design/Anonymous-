@@ -26,11 +26,21 @@ socketio = SocketIO(
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    error = request.args.get('error')
+    return render_template('index.html', error=error)
 
 
 @app.route('/room/<room_name>')
 def room(room_name):
+    room_key = f"room:{room_name}"
+    
+    if not r.exists(room_key):
+        return redirect(url_for('index', error="Room does not exist. Please create or join it from the home page."))
+        
+    saved_password = r.hget(room_key, "password")
+    if saved_password and not session.get(f'auth_{room_name}'):
+        return redirect(url_for('index', error="You must enter the correct password to join this room!"))
+
     username = session.get('username')
     return render_template('index.html', room_name=room_name, username=username)
 
@@ -45,7 +55,7 @@ def join_room_route():
         session['username'] = username
 
     if not room_name:
-        return "Room name required!", 400
+        return redirect(url_for('index', error="Room name required!"))
 
     room_key = f"room:{room_name}"
 
@@ -56,6 +66,7 @@ def join_room_route():
             "password": password_hash,
             "users": 0
         })
+        session[f'auth_{room_name}'] = True
         return redirect(url_for('room', room_name=room_name))
 
     else:
@@ -64,11 +75,12 @@ def join_room_route():
 
         if saved_password:
             if not password:
-                return "Password required!", 401
+                return redirect(url_for('index', error="Password required!"))
             entered_hash = hashlib.sha256(password.encode()).hexdigest()
             if entered_hash != saved_password:
-                return "Wrong password!", 401
+                return redirect(url_for('index', error="Wrong password!"))
 
+        session[f'auth_{room_name}'] = True
         return redirect(url_for('room', room_name=room_name))
 
 
