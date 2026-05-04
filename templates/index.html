@@ -505,7 +505,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <input type="text" onkeyup="validateInput()" id="room_name" title="please enter number" name="room_name" placeholder="Enter Room ID..." required>
+                        <input type="text" oninput="validateNumbers(this)" id="room_name" title="please enter number" name="room_name" placeholder="Enter Room ID..." required>
 
                         <div id="passwordInputContainer" class="hidden"
                             style="margin-top: 15px; opacity: 0; transition: opacity 0.3s ease;">
@@ -577,8 +577,7 @@
     <script>
         // validdateInput function to allow only numbers and letters in room name
 
-    function validateInput() {
-            const input = document.getElementById('room_name');
+ function validateNumbers(input) {
             input.value = input.value.replace(/[^a-zA-Z0-9_-]/g, '');
         }
         const pathParts = window.location.pathname.split('/');
