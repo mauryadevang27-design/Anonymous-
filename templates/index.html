@@ -505,7 +505,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <input type="text" pattern="[0-9]*" id="room_name" title="please enter number" name="room_name" placeholder="Enter Room ID..." required>
+                        <input type="text" oninput="validateInput()" id="room_name" title="please enter number" name="room_name" placeholder="Enter Room ID..." required>
 
                         <div id="passwordInputContainer" class="hidden"
                             style="margin-top: 15px; opacity: 0; transition: opacity 0.3s ease;">
@@ -575,6 +575,12 @@
     </div>
 
     <script>
+        // validdateInput function to allow only numbers and letters in room name
+
+    function validateInput() {
+            const input = document.getElementById('room_name');
+            input.value = input.value.replace(/[^a-zA-Z0-9_-]/g, '');
+        }
         const pathParts = window.location.pathname.split('/');
 
         const storedUsername = localStorage.getItem('chat_username');
