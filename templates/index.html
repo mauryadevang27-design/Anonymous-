@@ -389,6 +389,7 @@
 
         .message-input input {
             flex: 1;
+            min-width: 0;
             padding: 14px 16px;
             background: var(--input-bg);
             color: var(--text-main);
@@ -459,14 +460,23 @@
         }
 
         @media (max-width: 480px) {
+            .container {
+                width: 98%;
+            }
+            .chat-section {
+                padding: 15px 10px;
+            }
+            .messages {
+                padding: 12px 8px;
+            }
             .message-input button {
-                padding: 0 16px !important;
+                padding: 0 14px !important;
             }
             .message-input input {
-                padding: 12px 14px;
+                padding: 12px 10px;
             }
             .message-input {
-                gap: 8px;
+                gap: 6px;
             }
         }
     </style>
