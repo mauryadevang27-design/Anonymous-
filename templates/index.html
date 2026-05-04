@@ -505,11 +505,11 @@
                                 </svg>
                             </div>
                         </div>
-                        <input type="text" id="room_name" name="room_name" placeholder="Enter Room ID..." required>
+                        <input type="text" pattern="[0-9]*" id="room_name" title="please enter number" name="room_name" placeholder="Enter Room ID..." required>
 
                         <div id="passwordInputContainer" class="hidden"
                             style="margin-top: 15px; opacity: 0; transition: opacity 0.3s ease;">
-                            <input type="password" id="password" name="password" placeholder="Enter secure key..."
+                            <input type="password" id="password" name="password" placeholder="Enter Password..."
                                 style="border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05);">
                         </div>
                     </div>
