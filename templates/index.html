@@ -405,7 +405,8 @@
         }
 
         .message-input button {
-            padding: 0 24px;
+            flex-shrink: 0;
+            padding: 0 20px;
             background: var(--accent-green);
             color: #fff;
             border: none;
@@ -455,6 +456,18 @@
             content: "";
             clear: both;
             display: table;
+        }
+
+        @media (max-width: 480px) {
+            .message-input button {
+                padding: 0 16px !important;
+            }
+            .message-input input {
+                padding: 12px 14px;
+            }
+            .message-input {
+                gap: 8px;
+            }
         }
     </style>
 </head>
