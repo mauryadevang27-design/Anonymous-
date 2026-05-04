@@ -90,6 +90,11 @@ def handle_join(data):
     join_room(room)
     r.hset(f"session:{request.sid}", mapping={"room": room, "username": username})
     r.hincrby(f"room:{room}", "users", 1)
+    
+    r.hset(f"room_users:{room}", request.sid, username)
+    current_users = list(r.hvals(f"room_users:{room}"))
+    emit('update_users', {'users': current_users}, room=room)
+    
     send({'type': 'system', 'message': f'{username} joined!', 'username': 'System'}, room=room)
 
 @socketio.on('message')
@@ -113,9 +118,15 @@ def handle_disconnect():
         room = session_data.get("room")
         send({'type': 'system', 'message': f'{session_data.get("username")} left the room.', 'username': 'System'}, room=room)
         r.delete(sid_key)
+        
+        r.hdel(f"room_users:{room}", request.sid)
+        current_users = list(r.hvals(f"room_users:{room}"))
+        emit('update_users', {'users': current_users}, room=room)
+        
         users = r.hincrby(f"room:{room}", "users", -1)
         if users <= 0:
             r.delete(f"room:{room}")
+            r.delete(f"room_users:{room}")
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8080)
