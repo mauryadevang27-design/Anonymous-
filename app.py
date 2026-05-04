@@ -111,7 +111,7 @@ def handle_disconnect():
     session_data = r.hgetall(sid_key)
     if session_data:
         room = session_data.get("room")
-        send({'type': 'system', 'message': 'Someone left.', 'username': 'System'}, room=room)
+        send({'type': 'system', 'message': f'{session_data.get("username")} left the room.', 'username': 'System'}, room=room)
         r.delete(sid_key)
         users = r.hincrby(f"room:{room}", "users", -1)
         if users <= 0:
