@@ -1,0 +1,13 @@
+#virtual environment
+.venv/
+pyvenv.cfg
+
+#secet files
+Anonymous-.env
+
+#dataBase
+*.db
+
+#python cache
+__pycache__/
+*.pyc

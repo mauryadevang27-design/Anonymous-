@@ -739,6 +739,31 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
+        function handleAntiScreenshot(e) {
+            if (e.key === 'PrintScreen' || 
+               (e.ctrlKey && e.key === 'p') || 
+               (e.metaKey && e.shiftKey)) {
+                document.getElementById('viewOnceImg').style.opacity = '0';
+                closeViewOnce();
+            }
+        }
+
+        function handleFocusLoss() {
+            document.getElementById('viewOnceImg').style.opacity = '0';
+            closeViewOnce();
+        }
+        
+        function handleVisibilityChange() {
+            if (document.visibilityState === 'hidden') {
+                document.getElementById('viewOnceImg').style.opacity = '0';
+                closeViewOnce();
+            }
+        }
+
+        function preventContextMenu(e) {
+            e.preventDefault();
+        }
+
         function viewOnceImage(id, data) {
             const container = document.getElementById(id + '_container');
             if (!container) return;
@@ -746,7 +771,14 @@
             const modal = document.getElementById('viewOnceModal');
             const img = document.getElementById('viewOnceImg');
             img.src = data;
+            img.style.opacity = '1';
             modal.classList.remove('hidden');
+
+            document.addEventListener('keyup', handleAntiScreenshot);
+            document.addEventListener('keydown', handleAntiScreenshot);
+            window.addEventListener('blur', handleFocusLoss);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            document.addEventListener('contextmenu', preventContextMenu);
 
             container.innerHTML = `
                 <div style="font-size: 13px; color: var(--text-muted); font-style: italic; display: flex; align-items: center; justify-content: center; gap: 6px;">
@@ -767,6 +799,13 @@
             const img = document.getElementById('viewOnceImg');
             modal.classList.add('hidden');
             img.src = '';
+            img.style.opacity = '1';
+            
+            document.removeEventListener('keyup', handleAntiScreenshot);
+            document.removeEventListener('keydown', handleAntiScreenshot);
+            window.removeEventListener('blur', handleFocusLoss);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            document.removeEventListener('contextmenu', preventContextMenu);
         }
     </script>
 
@@ -784,7 +823,7 @@
             </svg>
         </button>
         <img id="viewOnceImg"
-            style="max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 30px rgba(16, 185, 129, 0.1);">
+            style="max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 30px rgba(16, 185, 129, 0.1); user-select: none; -webkit-user-drag: none; pointer-events: none; transition: opacity 0.1s;">
         <div
             style="color: var(--text-muted); margin-top: 20px; font-family: var(--font-mono); font-size: 13px; display: flex; align-items: center; gap: 8px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -792,7 +831,7 @@
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
-            This photo will disappear after closing
+            This photo will disappear after closing. Screenshots are restricted.
         </div>
     </div>
 </body>
